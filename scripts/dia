@@ -1,0 +1,20 @@
+#!/bin/bash
+
+# Developer Intelligence Assistant CLI wrapper script
+
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+CLI_DIR="$PROJECT_ROOT/cli"
+
+# Check if CLI virtual environment exists
+if [ ! -d "$CLI_DIR/venv" ]; then
+    echo "CLI not set up. Please run ./scripts/start-dev.sh first."
+    exit 1
+fi
+
+# Activate virtual environment and run CLI
+cd "$CLI_DIR"
+source venv/bin/activate
+python dia_cli.py "$@"
+deactivate
