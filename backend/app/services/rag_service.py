@@ -19,7 +19,8 @@ class RAGService:
     
     async def query(self, user_id: int, question: str, sources: Optional[List[str]] = None, 
                    response_type: ResponseType = ResponseType.CONCISE, 
-                   temperature: float = 0.7, db=None) -> QueryResponse:
+                   temperature: float = 0.7, session_id: Optional[int] = None,
+                   model: Optional[str] = None, db=None) -> QueryResponse:
         start_time = time.time()
         
         # Generate embedding for the question
@@ -103,13 +104,31 @@ class RAGService:
                 confidence=1 - distance  # Convert distance to confidence
             ))
         
+        # Get chat history if session_id provided
+        chat_history = []
+        if session_id and db:
+            from ..models.user import ChatMessage
+            history_messages = db.query(ChatMessage).filter(
+                ChatMessage.session_id == session_id
+            ).order_by(ChatMessage.created_at.desc()).limit(10).all()
+            
+            # Reverse to get chronological order
+            for msg in reversed(history_messages):
+                if msg.message_type == 'user':
+                    chat_history.append(f"User: {msg.content}")
+                elif msg.message_type == 'assistant':
+                    chat_history.append(f"Assistant: {msg.content}")
+        
         # Generate response using Ollama
         context = "\n\n".join(context_docs[:5])  # Use top 5 results
-        prompt = self._build_prompt(question, context, response_type)
+        prompt = self._build_prompt(question, context, response_type, chat_history)
+        
+        # Use specified model or default
+        selected_model = model or self.ollama_model
         
         try:
             response = ollama.generate(
-                model=self.ollama_model,
+                model=selected_model,
                 prompt=prompt,
                 options={"temperature": temperature}
             )
@@ -126,17 +145,22 @@ class RAGService:
             processing_time=processing_time
         )
     
-    def _build_prompt(self, question: str, context: str, response_type: ResponseType) -> str:
+    def _build_prompt(self, question: str, context: str, response_type: ResponseType, 
+                      chat_history: List[str] = None) -> str:
         response_instructions = {
             ResponseType.BRIEF: "Provide a brief, direct answer in 1-2 sentences.",
             ResponseType.CONCISE: "Provide a clear, concise answer with key details.",
             ResponseType.EXPANSIVE: "Provide a comprehensive, detailed answer with examples and context."
         }
         
+        history_context = ""
+        if chat_history:
+            history_context = "\n\nPrevious conversation:\n" + "\n".join(chat_history[-6:])  # Last 3 exchanges
+        
         return f"""Based on the following context, answer the question.
 
 Context:
-{context}
+{context}{history_context}
 
 Question: {question}
 

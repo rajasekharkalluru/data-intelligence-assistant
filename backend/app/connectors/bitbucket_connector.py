@@ -64,36 +64,57 @@ class BitbucketConnector(BaseConnector):
                 
                 for repo in repos.get('values', []):
                     repo_name = repo['name']
+                    repo_slug = repo['slug']
                     
-                    # Look for README files
-                    readme_files = ['README.md', 'README.rst', 'README.txt', 'README']
-                    
-                    for readme_file in readme_files:
-                        try:
-                            file_response = await client.get(
-                                f"{self.base_url}/repositories/{workspace}/{repo_name}/src/main/{readme_file}",
-                                auth=(username, app_password)
-                            )
-                            
-                            if file_response.status_code == 200:
-                                content = file_response.text
-                                
-                                documents.append({
-                                    'id': f"{workspace}_{repo_name}_{readme_file}",
-                                    'title': f"{repo_name} - {readme_file}",
-                                    'content': content,
-                                    'url': repo['links']['html']['href'],
-                                    'created_at': repo.get('created_on', ''),
-                                    'updated_at': repo.get('updated_on', ''),
-                                    'repository': repo_name
-                                })
-                                break  # Found a README, move to next repo
-                        
-                        except Exception:
-                            continue  # Try next README file
+                    # Fetch repository files
+                    repo_docs = await self._fetch_repo_files(
+                        client, workspace, repo_slug, username, app_password, repo
+                    )
+                    documents.extend(repo_docs)
         
         except Exception as e:
             print(f"Error fetching Bitbucket documents: {e}")
+        
+        return documents
+    
+    async def _fetch_repo_files(self, client, workspace: str, repo_slug: str, username: str, app_password: str, repo: Dict) -> List[Dict[str, Any]]:
+        """Fetch important files from a repository"""
+        documents = []
+        
+        # Files to fetch (documentation and key code files)
+        important_files = [
+            'README.md', 'README.rst', 'README.txt', 'README',
+            'CONTRIBUTING.md', 'ARCHITECTURE.md', 'API.md',
+            'docs/README.md', 'docs/index.md'
+        ]
+        
+        for file_path in important_files:
+            try:
+                file_response = await client.get(
+                    f"{self.base_url}/repositories/{workspace}/{repo_slug}/src/main/{file_path}",
+                    auth=(username, app_password),
+                    timeout=10.0
+                )
+                
+                if file_response.status_code == 200:
+                    content = file_response.text
+                    
+                    # Only include if content is substantial
+                    if len(content.strip()) > 50:
+                        documents.append({
+                            'id': f"{workspace}_{repo_slug}_{file_path.replace('/', '_')}",
+                            'title': f"{repo['name']} - {file_path}",
+                            'content': content,
+                            'file_path': file_path,
+                            'url': f"{repo['links']['html']['href']}/src/main/{file_path}",
+                            'created_at': repo.get('created_on', ''),
+                            'updated_at': repo.get('updated_on', ''),
+                            'repository': repo['name'],
+                            'language': repo.get('language', 'unknown')
+                        })
+            
+            except Exception:
+                continue  # File doesn't exist or error, try next
         
         return documents
     
@@ -127,7 +148,7 @@ class BitbucketConnector(BaseConnector):
                 repos = repos_response.json()
                 
                 for repo in repos.get('values', []):
-                    repo_name = repo['name']
+                    repo_slug = repo['slug']
                     
                     # Check if repository was updated since our last sync
                     if since_date:
@@ -135,32 +156,11 @@ class BitbucketConnector(BaseConnector):
                         if repo_updated <= since_date:
                             continue
                     
-                    # Look for README files
-                    readme_files = ['README.md', 'README.rst', 'README.txt', 'README']
-                    
-                    for readme_file in readme_files:
-                        try:
-                            file_response = await client.get(
-                                f"{self.base_url}/repositories/{workspace}/{repo_name}/src/main/{readme_file}",
-                                auth=(username, app_password)
-                            )
-                            
-                            if file_response.status_code == 200:
-                                content = file_response.text
-                                
-                                documents.append({
-                                    'id': f"{workspace}_{repo_name}_{readme_file}",
-                                    'title': f"{repo_name} - {readme_file}",
-                                    'content': content,
-                                    'url': repo['links']['html']['href'],
-                                    'created_at': repo.get('created_on', ''),
-                                    'updated_at': repo.get('updated_on', ''),
-                                    'repository': repo_name
-                                })
-                                break
-                        
-                        except Exception:
-                            continue
+                    # Fetch repository files
+                    repo_docs = await self._fetch_repo_files(
+                        client, workspace, repo_slug, username, app_password, repo
+                    )
+                    documents.extend(repo_docs)
             
             return documents, None
             

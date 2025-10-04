@@ -90,6 +90,145 @@ async def read_users_me(current_user: user_models.User = Depends(get_current_act
     """Get current user profile"""
     return current_user
 
+# Chat Session Management
+@app.get("/chat/sessions")
+async def get_chat_sessions(
+    current_user: user_models.User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Get user's chat sessions"""
+    sessions = db.query(user_models.ChatSession).filter(
+        user_models.ChatSession.user_id == current_user.id
+    ).order_by(user_models.ChatSession.updated_at.desc()).all()
+    
+    return [
+        {
+            "id": session.id,
+            "title": session.title or "New Chat",
+            "created_at": session.created_at,
+            "updated_at": session.updated_at,
+            "message_count": len(session.messages)
+        }
+        for session in sessions
+    ]
+
+@app.post("/chat/sessions")
+async def create_chat_session(
+    current_user: user_models.User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Create a new chat session"""
+    session = user_models.ChatSession(
+        user_id=current_user.id,
+        title="New Chat"
+    )
+    db.add(session)
+    db.commit()
+    db.refresh(session)
+    
+    return {
+        "id": session.id,
+        "title": session.title,
+        "created_at": session.created_at,
+        "updated_at": session.updated_at,
+        "message_count": 0
+    }
+
+@app.get("/chat/sessions/{session_id}/messages")
+async def get_session_messages(
+    session_id: int,
+    current_user: user_models.User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Get messages for a chat session"""
+    # Verify session belongs to user
+    session = db.query(user_models.ChatSession).filter(
+        user_models.ChatSession.id == session_id,
+        user_models.ChatSession.user_id == current_user.id
+    ).first()
+    
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+    
+    messages = db.query(user_models.ChatMessage).filter(
+        user_models.ChatMessage.session_id == session_id
+    ).order_by(user_models.ChatMessage.created_at).all()
+    
+    return [
+        {
+            "id": msg.id,
+            "type": msg.message_type,
+            "content": msg.content,
+            "sources": msg.sources_used,
+            "timestamp": msg.created_at
+        }
+        for msg in messages
+    ]
+
+@app.put("/chat/sessions/{session_id}")
+async def update_chat_session(
+    session_id: int,
+    title: str,
+    current_user: user_models.User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Update chat session title"""
+    session = db.query(user_models.ChatSession).filter(
+        user_models.ChatSession.id == session_id,
+        user_models.ChatSession.user_id == current_user.id
+    ).first()
+    
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+    
+    session.title = title
+    db.commit()
+    
+    return {"message": "Session updated successfully"}
+
+@app.delete("/chat/sessions/{session_id}")
+async def delete_chat_session(
+    session_id: int,
+    current_user: user_models.User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Delete a chat session"""
+    session = db.query(user_models.ChatSession).filter(
+        user_models.ChatSession.id == session_id,
+        user_models.ChatSession.user_id == current_user.id
+    ).first()
+    
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+    
+    db.delete(session)
+    db.commit()
+    
+    return {"message": "Session deleted successfully"}
+
+# AI Model Management
+@app.get("/models")
+async def get_available_models(
+    current_user: user_models.User = Depends(get_current_active_user)
+):
+    """Get list of available AI models"""
+    try:
+        # Get models from Ollama
+        import ollama
+        models_response = ollama.list()
+        models = [
+            {
+                "name": model['name'],
+                "size": model.get('size', 0),
+                "modified": model.get('modified_at', ''),
+            }
+            for model in models_response.get('models', [])
+        ]
+        return {"models": models}
+    except Exception as e:
+        # Return default if Ollama not available
+        return {"models": [{"name": "llama3.2", "size": 0, "modified": ""}]}
+
 # Protected routes
 @app.post("/query", response_model=QueryResponse)
 async def query_knowledge_base(
@@ -97,16 +236,43 @@ async def query_knowledge_base(
     current_user: user_models.User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
-    """Query the knowledge base using RAG"""
+    """Query the knowledge base using RAG with chat history context"""
     try:
+        # Save user message to session if session_id provided
+        if request.session_id:
+            user_message = user_models.ChatMessage(
+                session_id=request.session_id,
+                message_type='user',
+                content=request.question
+            )
+            db.add(user_message)
+            db.commit()
+        
         response = await rag_service.query(
             user_id=current_user.id,
             question=request.question,
             sources=request.sources,
             response_type=request.response_type,
             temperature=request.temperature,
+            session_id=request.session_id,
+            model=request.model,
             db=db
         )
+        
+        # Save assistant response to session
+        if request.session_id:
+            assistant_message = user_models.ChatMessage(
+                session_id=request.session_id,
+                message_type='assistant',
+                content=response.answer,
+                sources_used={"sources": [s.dict() for s in response.sources]},
+                response_type=request.response_type.value,
+                temperature=str(request.temperature),
+                processing_time=str(response.processing_time)
+            )
+            db.add(assistant_message)
+            db.commit()
+        
         return response
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -412,6 +578,76 @@ async def bitbucket_webhook(request: Request, db: Session = Depends(get_db)):
         return result
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+# Analytics
+@app.get("/analytics/stats")
+async def get_analytics_stats(
+    current_user: user_models.User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Get analytics statistics for the current user"""
+    from sqlalchemy import func
+    
+    # Count total messages
+    total_messages = db.query(func.count(user_models.ChatMessage.id)).filter(
+        user_models.ChatMessage.session_id.in_(
+            db.query(user_models.ChatSession.id).filter(
+                user_models.ChatSession.user_id == current_user.id
+            )
+        )
+    ).scalar() or 0
+    
+    # Count total sessions
+    total_sessions = db.query(func.count(user_models.ChatSession.id)).filter(
+        user_models.ChatSession.user_id == current_user.id
+    ).scalar() or 0
+    
+    # Count active sources
+    active_sources = db.query(func.count(user_models.DataSource.id)).filter(
+        user_models.DataSource.user_id == current_user.id,
+        user_models.DataSource.is_active == True
+    ).scalar() or 0
+    
+    # Get recent queries (last 10)
+    recent_messages = db.query(user_models.ChatMessage).filter(
+        user_models.ChatMessage.type == 'user',
+        user_models.ChatMessage.session_id.in_(
+            db.query(user_models.ChatSession.id).filter(
+                user_models.ChatSession.user_id == current_user.id
+            )
+        )
+    ).order_by(user_models.ChatMessage.timestamp.desc()).limit(10).all()
+    
+    recent_queries = [
+        {
+            'text': msg.content[:100] + ('...' if len(msg.content) > 100 else ''),
+            'timestamp': msg.timestamp.isoformat()
+        }
+        for msg in recent_messages
+    ]
+    
+    # Source usage (mock data for now - would need to track this in messages)
+    sources = db.query(user_models.DataSource).filter(
+        user_models.DataSource.user_id == current_user.id,
+        user_models.DataSource.is_active == True
+    ).all()
+    
+    source_usage = [
+        {
+            'name': source.display_name,
+            'count': 0  # Would need to track actual usage
+        }
+        for source in sources
+    ]
+    
+    return {
+        'totalMessages': total_messages,
+        'totalSessions': total_sessions,
+        'activeSources': active_sources,
+        'avgResponseTime': 1.2,  # Mock data
+        'recentQueries': recent_queries,
+        'sourceUsage': source_usage
+    }
 
 if __name__ == "__main__":
     import uvicorn

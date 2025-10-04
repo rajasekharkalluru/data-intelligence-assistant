@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
-import { Brain, Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
+import { useState } from 'react';
+import branding from '../config/branding';
+import Logo from './Logo';
 
 const AuthForm = ({ onLogin }) => {
   const [isLogin, setIsLogin] = useState(true);
@@ -76,11 +78,11 @@ const AuthForm = ({ onLogin }) => {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
-          <div className="mx-auto h-16 w-16 bg-blue-600 rounded-full flex items-center justify-center">
-            <Brain className="h-8 w-8 text-white" />
+          <div className="flex justify-center mb-6">
+            <Logo size="large" showText={false} />
           </div>
-          <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
-            Developer Intelligence Assistant
+          <h2 className="text-3xl font-extrabold text-gray-900">
+            {branding.appName}
           </h2>
           <p className="mt-2 text-sm text-gray-600">
             {isLogin ? 'Sign in to your account' : 'Create your account'}
@@ -184,6 +186,31 @@ const AuthForm = ({ onLogin }) => {
               {loading ? 'Please wait...' : (isLogin ? 'Sign In' : 'Sign Up')}
             </button>
           </div>
+
+          {isLogin && (
+            <div className="border-t border-gray-200 pt-6">
+              <p className="text-sm text-gray-600 text-center mb-3">Quick Login (Demo Accounts)</p>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, username: 'demo', password: 'demo123' })}
+                  className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  Demo User
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, username: 'admin', password: 'admin123' })}
+                  className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  Admin User
+                </button>
+              </div>
+              <p className="text-xs text-gray-500 text-center mt-2">
+                Click to fill credentials, then Sign In
+              </p>
+            </div>
+          )}
 
           <div className="text-center">
             <button

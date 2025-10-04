@@ -1,10 +1,12 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """
 Initialize the database with tables
 """
 
 from app.database import engine
 from app.models.user import Base
+# Import all models to ensure they're registered with SQLAlchemy
+from app.models import user, document
 
 def init_database():
     """Create all database tables"""

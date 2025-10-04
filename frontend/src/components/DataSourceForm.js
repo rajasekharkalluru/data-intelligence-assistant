@@ -48,7 +48,7 @@ const DataSourceForm = ({ source, token, currentContext, onClose, onSuccess }) =
         display_name: `My ${sourceType.name}`
       }));
     }
-  }, [formData.source_type, source]);
+  }, [formData.source_type, source, sourceTypes]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

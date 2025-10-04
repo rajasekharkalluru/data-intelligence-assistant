@@ -53,47 +53,94 @@ class JiraConnector(BaseConnector):
         documents = []
         
         try:
-            # Get recent issues (last 100)
-            jql = "ORDER BY updated DESC"
-            issues = self.jira.jql(jql, limit=100, expand='changelog')
+            # Get all projects first
+            projects = self.jira.get_all_projects()
+            project_keys = [p['key'] for p in projects[:5]]  # Limit to first 5 projects
             
-            for issue in issues['issues']:
-                # Combine title, description, and comments
-                content_parts = []
+            for project_key in project_keys:
+                # Get issues from project
+                jql = f"project = {project_key} ORDER BY updated DESC"
+                issues = self.jira.jql(jql, limit=100, fields='*all')
                 
-                # Add summary
-                if issue['fields'].get('summary'):
-                    content_parts.append(f"Summary: {issue['fields']['summary']}")
-                
-                # Add description
-                if issue['fields'].get('description'):
-                    content_parts.append(f"Description: {issue['fields']['description']}")
-                
-                # Add comments
-                if issue['fields'].get('comment', {}).get('comments'):
-                    comments = issue['fields']['comment']['comments']
-                    for comment in comments[-3:]:  # Last 3 comments
-                        if comment.get('body'):
-                            content_parts.append(f"Comment: {comment['body']}")
-                
-                content = "\n\n".join(content_parts)
-                
-                if content.strip():  # Only add issues with content
-                    documents.append({
-                        'id': issue['key'],
-                        'title': f"{issue['key']}: {issue['fields'].get('summary', 'No Summary')}",
-                        'content': content,
-                        'url': f"{self.credentials.get('jira_url')}/browse/{issue['key']}",
-                        'created_at': issue['fields'].get('created', ''),
-                        'updated_at': issue['fields'].get('updated', ''),
-                        'issue_type': issue['fields'].get('issuetype', {}).get('name', ''),
-                        'status': issue['fields'].get('status', {}).get('name', '')
-                    })
+                for issue in issues.get('issues', []):
+                    doc = self._parse_issue(issue)
+                    if doc:
+                        documents.append(doc)
         
         except Exception as e:
             print(f"Error fetching JIRA documents: {e}")
         
         return documents
+    
+    def _parse_issue(self, issue: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """Parse a JIRA issue into a document"""
+        try:
+            fields = issue.get('fields', {})
+            
+            # Build comprehensive content
+            content_parts = []
+            
+            # Summary
+            summary = fields.get('summary', '')
+            if summary:
+                content_parts.append(f"Summary: {summary}")
+            
+            # Description
+            description = fields.get('description', '')
+            if description:
+                content_parts.append(f"Description: {description}")
+            
+            # Priority
+            priority = fields.get('priority', {})
+            if priority:
+                content_parts.append(f"Priority: {priority.get('name', 'None')}")
+            
+            # Assignee
+            assignee = fields.get('assignee', {})
+            if assignee:
+                content_parts.append(f"Assignee: {assignee.get('displayName', 'Unassigned')}")
+            
+            # Labels
+            labels = fields.get('labels', [])
+            if labels:
+                content_parts.append(f"Labels: {', '.join(labels)}")
+            
+            # Comments
+            comments = fields.get('comment', {}).get('comments', [])
+            comment_list = []
+            for comment in comments:
+                author = comment.get('author', {}).get('displayName', 'Unknown')
+                body = comment.get('body', '')
+                if body:
+                    comment_list.append({
+                        'author': author,
+                        'body': body,
+                        'created': comment.get('created', '')
+                    })
+            
+            content = "\n\n".join(content_parts)
+            
+            if not content.strip():
+                return None
+            
+            return {
+                'id': issue['key'],
+                'title': f"{issue['key']}: {summary}",
+                'content': content,
+                'description': description,
+                'comments': comment_list,
+                'url': f"{self.credentials.get('jira_url')}/browse/{issue['key']}",
+                'created_at': fields.get('created', ''),
+                'updated_at': fields.get('updated', ''),
+                'issue_type': fields.get('issuetype', {}).get('name', ''),
+                'status': fields.get('status', {}).get('name', ''),
+                'priority': priority.get('name', 'None') if priority else 'None',
+                'assignee': assignee.get('displayName', 'Unassigned') if assignee else 'Unassigned',
+                'labels': labels
+            }
+        except Exception as e:
+            print(f"Error parsing JIRA issue: {e}")
+            return None
     
     async def fetch_documents_since(self, since_date: Optional[datetime] = None, sync_token: Optional[str] = None) -> Tuple[List[Dict[str, Any]], Optional[str]]:
         """Fetch issues modified since a specific date (incremental sync)"""
@@ -116,40 +163,12 @@ class JiraConnector(BaseConnector):
             start_at = int(sync_token) if sync_token else 0
             max_results = 100
             
-            issues = self.jira.jql(jql, limit=max_results, start=start_at, expand='changelog')
+            issues = self.jira.jql(jql, limit=max_results, start=start_at, fields='*all')
             
-            for issue in issues['issues']:
-                # Combine title, description, and comments
-                content_parts = []
-                
-                # Add summary
-                if issue['fields'].get('summary'):
-                    content_parts.append(f"Summary: {issue['fields']['summary']}")
-                
-                # Add description
-                if issue['fields'].get('description'):
-                    content_parts.append(f"Description: {issue['fields']['description']}")
-                
-                # Add comments
-                if issue['fields'].get('comment', {}).get('comments'):
-                    comments = issue['fields']['comment']['comments']
-                    for comment in comments[-3:]:  # Last 3 comments
-                        if comment.get('body'):
-                            content_parts.append(f"Comment: {comment['body']}")
-                
-                content = "\n\n".join(content_parts)
-                
-                if content.strip():  # Only add issues with content
-                    documents.append({
-                        'id': issue['key'],
-                        'title': f"{issue['key']}: {issue['fields'].get('summary', 'No Summary')}",
-                        'content': content,
-                        'url': f"{self.credentials.get('jira_url')}/browse/{issue['key']}",
-                        'created_at': issue['fields'].get('created', ''),
-                        'updated_at': issue['fields'].get('updated', ''),
-                        'issue_type': issue['fields'].get('issuetype', {}).get('name', ''),
-                        'status': issue['fields'].get('status', {}).get('name', '')
-                    })
+            for issue in issues.get('issues', []):
+                doc = self._parse_issue(issue)
+                if doc:
+                    documents.append(doc)
             
             # Calculate next token for pagination
             next_token = None

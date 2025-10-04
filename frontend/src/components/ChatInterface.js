@@ -1,8 +1,9 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Send, Loader2, ExternalLink } from 'lucide-react';
+import { Bot, ExternalLink, Loader2, Send, Sparkles, User } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
+import branding from '../config/branding';
 
-const ChatInterface = ({ selectedSources, settings, token }) => {
+const ChatInterface = ({ selectedSources, settings, token, darkMode, sessions, currentSessionId, setCurrentSessionId, onNewSession, onDeleteSession, selectedModel, setSelectedModel, availableModels }) => {
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -15,6 +16,34 @@ const ChatInterface = ({ selectedSources, settings, token }) => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Load messages when session changes
+  useEffect(() => {
+    if (currentSessionId && token) {
+      loadSessionMessages(currentSessionId);
+    }
+  }, [currentSessionId, token]);
+
+  const loadSessionMessages = async (sessionId) => {
+    try {
+      const response = await fetch(`/chat/sessions/${sessionId}/messages`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        const formattedMessages = data.map(msg => ({
+          id: msg.id,
+          type: msg.type,
+          content: msg.content,
+          sources: msg.sources?.sources || [],
+          timestamp: new Date(msg.timestamp)
+        }));
+        setMessages(formattedMessages);
+      }
+    } catch (error) {
+      console.error('Error loading messages:', error);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -42,7 +71,9 @@ const ChatInterface = ({ selectedSources, settings, token }) => {
           question: inputValue,
           sources: selectedSources.length > 0 ? selectedSources : null,
           response_type: settings.responseType,
-          temperature: settings.temperature
+          temperature: settings.temperature,
+          session_id: currentSessionId,
+          model: selectedModel
         })
       });
 
@@ -71,109 +102,212 @@ const ChatInterface = ({ selectedSources, settings, token }) => {
     }
   };
 
+  const bgClass = darkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-slate-50 to-blue-50';
+  const textPrimary = darkMode ? 'text-gray-100' : 'text-gray-800';
+  const textSecondary = darkMode ? 'text-gray-400' : 'text-gray-600';
+  const cardBg = darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200';
+  const inputBg = darkMode ? 'bg-gray-800 border-gray-700 text-gray-100' : 'bg-white border-gray-200 text-gray-900';
+  const sidebarBg = darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200';
+
   return (
-    <div className="bg-white rounded-lg shadow-sm border h-[calc(100vh-200px)] flex flex-col">
-      {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.length === 0 && (
-          <div className="text-center text-gray-500 mt-8">
-            <p className="text-lg mb-2">👋 Hello! I'm your Developer Intelligence Assistant</p>
-            <p>Ask me anything about your connected data sources.</p>
+    <div className={`h-full flex flex-col ${bgClass}`}>
+        {/* Header with Filters */}
+        {messages.length > 0 && (
+          <div className={`border-b px-6 py-3 ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}>
+            <div className="max-w-4xl mx-auto flex items-center justify-between">
+              <div className={`text-sm ${textSecondary}`}>
+                {messages.length} messages
+              </div>
+            </div>
           </div>
         )}
+        
+        {/* Messages Area */}
+        <div className="flex-1 overflow-y-auto px-6 py-8">
+          {messages.length === 0 && (
+            <div className="max-w-3xl mx-auto text-center mt-20">
+              <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl">
+                <Sparkles className="w-10 h-10 text-white" />
+              </div>
+              <h2 className={`text-3xl font-bold mb-3 ${textPrimary}`}>
+                Hello! I'm your AI Assistant
+              </h2>
+              <p className={`text-lg mb-8 ${textSecondary}`}>
+                {branding.appDescription}
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto">
+                <button
+                  onClick={() => setInputValue("How do I deploy the application?")}
+                  className={`p-4 rounded-xl border hover:border-blue-300 hover:shadow-md transition-all text-left group ${cardBg}`}
+                >
+                  <p className={`text-sm font-medium group-hover:text-blue-600 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    How do I deploy the application?
+                  </p>
+                </button>
+                <button
+                  onClick={() => setInputValue("What are the main features?")}
+                  className={`p-4 rounded-xl border hover:border-blue-300 hover:shadow-md transition-all text-left group ${cardBg}`}
+                >
+                  <p className={`text-sm font-medium group-hover:text-blue-600 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    What are the main features?
+                  </p>
+                </button>
+                <button
+                  onClick={() => setInputValue("Show me the API documentation")}
+                  className={`p-4 rounded-xl border hover:border-blue-300 hover:shadow-md transition-all text-left group ${cardBg}`}
+                >
+                  <p className={`text-sm font-medium group-hover:text-blue-600 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    Show me the API documentation
+                  </p>
+                </button>
+                <button
+                  onClick={() => setInputValue("How do I configure data sources?")}
+                  className={`p-4 rounded-xl border hover:border-blue-300 hover:shadow-md transition-all text-left group ${cardBg}`}
+                >
+                  <p className={`text-sm font-medium group-hover:text-blue-600 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    How do I configure data sources?
+                  </p>
+                </button>
+              </div>
+            </div>
+          )}
 
-        {messages.map((message) => (
-          <div key={message.id} className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-3xl rounded-lg px-4 py-2 ${
-              message.type === 'user' 
-                ? 'bg-blue-600 text-white' 
-                : message.type === 'error'
-                ? 'bg-red-100 text-red-800 border border-red-200'
-                : 'bg-gray-100 text-gray-900'
-            }`}>
-              {message.type === 'user' ? (
-                <p>{message.content}</p>
-              ) : (
-                <div>
-                  <ReactMarkdown className="prose prose-sm max-w-none">
-                    {message.content}
-                  </ReactMarkdown>
-                  
-                  {message.sources && message.sources.length > 0 && (
-                    <div className="mt-4 pt-3 border-t border-gray-200">
-                      <p className="text-xs font-medium text-gray-600 mb-2">Sources:</p>
-                      <div className="space-y-2">
-                        {message.sources.map((source, index) => (
-                          <div key={index} className="flex items-start gap-2 text-xs">
-                            <div className="flex-1">
-                              <a
-                                href={source.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1"
-                              >
-                                {source.title}
-                                <ExternalLink size={12} />
-                              </a>
-                              <p className="text-gray-600 mt-1">{source.snippet}</p>
-                              <div className="flex items-center gap-2 mt-1">
-                                <span className="px-1.5 py-0.5 bg-gray-200 text-gray-700 rounded text-xs">
-                                  {source.source_type}
-                                </span>
-                                <span className="text-gray-500">
-                                  {Math.round(source.confidence * 100)}% match
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                      {message.processingTime && (
-                        <p className="text-xs text-gray-500 mt-2">
-                          Processed in {message.processingTime.toFixed(2)}s
-                        </p>
-                      )}
-                    </div>
+          <div className="max-w-4xl mx-auto space-y-6">
+            {messages.map((message) => (
+              <div key={message.id} className={`flex gap-4 ${message.type === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+                {/* Avatar */}
+                <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
+                  message.type === 'user'
+                    ? 'bg-gradient-to-br from-blue-500 to-indigo-600'
+                    : 'bg-gradient-to-br from-purple-500 to-pink-600'
+                } shadow-lg`}>
+                  {message.type === 'user' ? (
+                    <User className="w-5 h-5 text-white" />
+                  ) : (
+                    <Bot className="w-5 h-5 text-white" />
                   )}
                 </div>
-              )}
-            </div>
+
+                {/* Message Content */}
+                <div className={`flex-1 ${message.type === 'user' ? 'text-right' : 'text-left'}`}>
+                  <div className={`inline-block max-w-3xl rounded-2xl px-5 py-3 ${
+                    message.type === 'user'
+                      ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg'
+                      : message.type === 'error'
+                      ? darkMode ? 'bg-red-900 text-red-200 border-2 border-red-800' : 'bg-red-50 text-red-800 border-2 border-red-200'
+                      : darkMode ? 'bg-gray-800 text-gray-100 shadow-md border border-gray-700' : 'bg-white text-gray-900 shadow-md border border-gray-100'
+                  }`}>
+                    {message.type === 'user' ? (
+                      <p className="text-base">{message.content}</p>
+                    ) : (
+                      <div>
+                        <ReactMarkdown className={`prose prose-sm max-w-none ${
+                          darkMode 
+                            ? 'prose-invert prose-headings:text-gray-100 prose-p:text-gray-300 prose-a:text-blue-400 prose-strong:text-gray-100 prose-code:text-pink-400 prose-code:bg-pink-900 prose-code:px-1 prose-code:py-0.5 prose-code:rounded'
+                            : 'prose-headings:text-gray-900 prose-p:text-gray-700 prose-a:text-blue-600 prose-strong:text-gray-900 prose-code:text-pink-600 prose-code:bg-pink-50 prose-code:px-1 prose-code:py-0.5 prose-code:rounded'
+                        }`}>
+                          {message.content}
+                        </ReactMarkdown>
+                        
+                        {message.sources && message.sources.length > 0 && (
+                          <div className={`mt-5 pt-4 border-t ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+                            <p className={`text-xs font-semibold uppercase tracking-wide mb-3 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                              📚 Sources
+                            </p>
+                            <div className="space-y-3">
+                              {message.sources.map((source, index) => (
+                                <div key={index} className={`rounded-lg p-3 border ${
+                                  darkMode 
+                                    ? 'bg-gradient-to-r from-blue-900 to-indigo-900 border-blue-800' 
+                                    : 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-100'
+                                }`}>
+                                  <a
+                                    href={source.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className={`text-sm font-semibold flex items-center gap-1.5 mb-1 ${
+                                      darkMode ? 'text-blue-300 hover:text-blue-200' : 'text-blue-700 hover:text-blue-900'
+                                    }`}
+                                  >
+                                    {source.title}
+                                    <ExternalLink className="w-3 h-3" />
+                                  </a>
+                                  <p className={`text-xs mb-2 line-clamp-2 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>{source.snippet}</p>
+                                  <div className="flex items-center gap-2">
+                                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${
+                                      darkMode 
+                                        ? 'bg-gray-800 text-blue-300 border-blue-700' 
+                                        : 'bg-white text-blue-700 border-blue-200'
+                                    }`}>
+                                      {source.source_type}
+                                    </span>
+                                    <span className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                                      {Math.round(source.confidence * 100)}% match
+                                    </span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                            {message.processingTime && (
+                              <p className={`text-xs mt-3 flex items-center gap-1 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                                <Sparkles className="w-3 h-3" />
+                                Processed in {message.processingTime.toFixed(2)}s
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <p className={`text-xs mt-1 px-1 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                    {message.timestamp.toLocaleTimeString()}
+                  </p>
+                </div>
+              </div>
+            ))}
+
+            {isLoading && (
+              <div className="flex gap-4">
+                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center shadow-lg">
+                  <Bot className="w-5 h-5 text-white" />
+                </div>
+                <div className={`rounded-2xl px-5 py-3 shadow-md border ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100'}`}>
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="animate-spin w-4 h-4 text-blue-600" />
+                    <span className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>Thinking...</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div ref={messagesEndRef} />
           </div>
-        ))}
+        </div>
 
-        {isLoading && (
-          <div className="flex justify-start">
-            <div className="bg-gray-100 rounded-lg px-4 py-2 flex items-center gap-2">
-              <Loader2 className="animate-spin" size={16} />
-              <span className="text-gray-600">Thinking...</span>
-            </div>
+        {/* Input Area */}
+        <div className={`border-t px-6 py-4 ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}>
+          <div className="max-w-4xl mx-auto">
+            <form onSubmit={handleSubmit} className="flex gap-3">
+              <input
+                type="text"
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                placeholder="Ask me anything..."
+                className={`flex-1 px-5 py-3 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${inputBg} ${darkMode ? 'placeholder-gray-500' : 'placeholder-gray-400'}`}
+                disabled={isLoading}
+              />
+              <button
+                type="submit"
+                disabled={isLoading || !inputValue.trim()}
+                className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 font-medium shadow-lg hover:shadow-xl transition-all"
+              >
+                <Send className="w-4 h-4" />
+                <span>Send</span>
+              </button>
+            </form>
           </div>
-        )}
-
-        <div ref={messagesEndRef} />
+        </div>
       </div>
-
-      {/* Input Area */}
-      <div className="border-t p-4">
-        <form onSubmit={handleSubmit} className="flex gap-2">
-          <input
-            type="text"
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            placeholder="Ask me anything about your codebase..."
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            disabled={isLoading}
-          />
-          <button
-            type="submit"
-            disabled={isLoading || !inputValue.trim()}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-          >
-            <Send size={16} />
-          </button>
-        </form>
-      </div>
-    </div>
   );
 };
 

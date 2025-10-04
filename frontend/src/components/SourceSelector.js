@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { RefreshCw, CheckCircle, XCircle, Sync, Plus, Edit, Trash2, TestTube } from 'lucide-react';
+import { RefreshCw, CheckCircle, XCircle, RotateCw, Plus, Edit, Trash2, TestTube } from 'lucide-react';
 import DataSourceForm from './DataSourceForm';
 
 const SourceSelector = ({ sources, selectedSources, onSourcesChange, onRefresh, token, currentContext }) => {
@@ -50,7 +50,7 @@ const SourceSelector = ({ sources, selectedSources, onSourcesChange, onRefresh, 
   };
 
   const handleDeleteSource = async (sourceId) => {
-    if (!confirm('Are you sure you want to delete this data source?')) return;
+    if (!window.confirm('Are you sure you want to delete this data source?')) return;
     
     try {
       const response = await fetch(`/data-sources/${sourceId}`, {
@@ -133,7 +133,7 @@ const SourceSelector = ({ sources, selectedSources, onSourcesChange, onRefresh, 
                     className="p-1 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded"
                     title="Sync data"
                   >
-                    <Sync size={14} />
+                    <RotateCw size={14} />
                   </button>
                 )}
                 

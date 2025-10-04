@@ -9,6 +9,7 @@ from ..models.user import DataSource
 from ..models.document import Document, SyncLog
 from ..models.sync import SyncStrategy, SyncStatus, SyncResult, DocumentChange
 from ..services.encryption_service import EncryptionService
+from ..services.chunking_service import ChunkingService
 from ..connectors.confluence_connector import ConfluenceConnector
 from ..connectors.bitbucket_connector import BitbucketConnector
 from ..connectors.jira_connector import JiraConnector
@@ -16,6 +17,7 @@ from ..connectors.jira_connector import JiraConnector
 class SyncService:
     def __init__(self):
         self.encryption_service = EncryptionService()
+        self.chunking_service = ChunkingService()
         self.connectors = {
             "confluence": ConfluenceConnector,
             "bitbucket": BitbucketConnector,
@@ -139,7 +141,7 @@ class SyncService:
                     url=ext_doc['url'],
                     content_hash=content_hash,
                     last_modified_external=ext_doc.get('updated_at'),
-                    metadata=ext_doc.get('metadata', {})
+                    doc_metadata=ext_doc.get('metadata', {})
                 )
                 db.add(doc)
                 added += 1
@@ -159,7 +161,7 @@ class SyncService:
                 existing_doc.url = ext_doc['url']
                 existing_doc.content_hash = content_hash
                 existing_doc.last_modified_external = ext_doc.get('updated_at')
-                existing_doc.metadata = ext_doc.get('metadata', {})
+                existing_doc.doc_metadata = ext_doc.get('metadata', {})
                 existing_doc.synced_at = datetime.utcnow()
                 updated += 1
                 
@@ -265,7 +267,7 @@ class SyncService:
                     url=ext_doc['url'],
                     content_hash=content_hash,
                     last_modified_external=ext_doc.get('updated_at'),
-                    metadata=ext_doc.get('metadata', {})
+                    doc_metadata=ext_doc.get('metadata', {})
                 )
                 db.add(doc)
                 added += 1
@@ -285,7 +287,7 @@ class SyncService:
                 existing_doc.url = ext_doc['url']
                 existing_doc.content_hash = content_hash
                 existing_doc.last_modified_external = ext_doc.get('updated_at')
-                existing_doc.metadata = ext_doc.get('metadata', {})
+                existing_doc.doc_metadata = ext_doc.get('metadata', {})
                 existing_doc.synced_at = datetime.utcnow()
                 existing_doc.is_deleted = False  # Restore if was deleted
                 updated += 1
@@ -395,36 +397,52 @@ class SyncService:
                     print(f"Error removing document from vector DB: {e}")
             
             elif change.action in ["created", "updated"] and change.content:
-                # Add/update in vector database
+                # Add/update in vector database with chunking
                 try:
-                    # Generate embedding
-                    embedding = rag_service.embedding_model.encode([change.content]).tolist()[0]
-                    
-                    # Prepare metadata
-                    if data_source.user_id:
-                        owner_key = 'user_id'
-                        owner_value = data_source.user_id
-                        doc_id = f"user_{data_source.user_id}_{data_source.source_type}_{change.document_id}"
-                    else:
-                        owner_key = 'team_id'
-                        owner_value = data_source.team_id
-                        doc_id = f"team_{data_source.team_id}_{data_source.source_type}_{change.document_id}"
-                    
-                    metadata = {
+                    # Create document dict for chunking
+                    doc_dict = {
+                        'id': change.document_id,
                         'title': change.title,
-                        'url': change.url,
-                        'source': data_source.source_type,
-                        owner_key: owner_value,
-                        'created_at': '',
-                        'updated_at': ''
+                        'content': change.content,
+                        'url': change.url
                     }
                     
-                    # Upsert to vector database
-                    rag_service.collection.upsert(
-                        documents=[change.content],
-                        metadatas=[metadata],
-                        ids=[doc_id],
-                        embeddings=[embedding]
-                    )
+                    # Chunk the document
+                    chunks = self.chunking_service.chunk_document(doc_dict, data_source.source_type)
+                    
+                    # Process each chunk
+                    for chunk in chunks:
+                        # Generate embedding for chunk
+                        embedding = rag_service.embedding_model.encode([chunk.content]).tolist()[0]
+                        
+                        # Prepare metadata
+                        if data_source.user_id:
+                            owner_key = 'user_id'
+                            owner_value = data_source.user_id
+                            doc_id = f"user_{data_source.user_id}_{data_source.source_type}_{change.document_id}_chunk_{chunk.chunk_index}"
+                        else:
+                            owner_key = 'team_id'
+                            owner_value = data_source.team_id
+                            doc_id = f"team_{data_source.team_id}_{data_source.source_type}_{change.document_id}_chunk_{chunk.chunk_index}"
+                        
+                        metadata = {
+                            'title': change.title,
+                            'url': change.url,
+                            'source': data_source.source_type,
+                            owner_key: owner_value,
+                            'chunk_index': chunk.chunk_index,
+                            'total_chunks': chunk.total_chunks,
+                            'chunk_type': chunk.metadata.get('chunk_type', 'default'),
+                            'created_at': '',
+                            'updated_at': ''
+                        }
+                        
+                        # Upsert chunk to vector database
+                        rag_service.collection.upsert(
+                            documents=[chunk.content],
+                            metadatas=[metadata],
+                            ids=[doc_id],
+                            embeddings=[embedding]
+                        )
                 except Exception as e:
                     print(f"Error updating vector DB: {e}")
