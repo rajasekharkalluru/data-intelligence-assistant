@@ -77,23 +77,29 @@ const ChatInterface = ({ selectedSources, settings, token, darkMode, sessions, c
         })
       });
 
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
       const data = await response.json();
+      console.log('Chat response:', data); // Debug log
 
       const assistantMessage = {
         id: Date.now() + 1,
         type: 'assistant',
-        content: data.answer,
-        sources: data.sources,
-        processingTime: data.processing_time,
+        content: data.response || data.answer || 'No response received',
+        sources: data.sources || [],
+        processingTime: data.processing_time || data.processingTime,
         timestamp: new Date()
       };
 
       setMessages(prev => [...prev, assistantMessage]);
     } catch (error) {
+      console.error('Chat error:', error);
       const errorMessage = {
         id: Date.now() + 1,
         type: 'error',
-        content: 'Sorry, I encountered an error while processing your request.',
+        content: `Sorry, I encountered an error: ${error.message}`,
         timestamp: new Date()
       };
       setMessages(prev => [...prev, errorMessage]);
@@ -201,13 +207,19 @@ const ChatInterface = ({ selectedSources, settings, token, darkMode, sessions, c
                       <p className="text-base">{message.content}</p>
                     ) : (
                       <div>
-                        <ReactMarkdown className={`prose prose-sm max-w-none ${
-                          darkMode 
-                            ? 'prose-invert prose-headings:text-gray-100 prose-p:text-gray-300 prose-a:text-blue-400 prose-strong:text-gray-100 prose-code:text-pink-400 prose-code:bg-pink-900 prose-code:px-1 prose-code:py-0.5 prose-code:rounded'
-                            : 'prose-headings:text-gray-900 prose-p:text-gray-700 prose-a:text-blue-600 prose-strong:text-gray-900 prose-code:text-pink-600 prose-code:bg-pink-50 prose-code:px-1 prose-code:py-0.5 prose-code:rounded'
-                        }`}>
-                          {message.content}
-                        </ReactMarkdown>
+                        {message.content ? (
+                          <ReactMarkdown className={`prose prose-sm max-w-none ${
+                            darkMode 
+                              ? 'prose-invert prose-headings:text-gray-100 prose-p:text-gray-300 prose-a:text-blue-400 prose-strong:text-gray-100 prose-code:text-pink-400 prose-code:bg-pink-900 prose-code:px-1 prose-code:py-0.5 prose-code:rounded'
+                              : 'prose-headings:text-gray-900 prose-p:text-gray-700 prose-a:text-blue-600 prose-strong:text-gray-900 prose-code:text-pink-600 prose-code:bg-pink-50 prose-code:px-1 prose-code:py-0.5 prose-code:rounded'
+                          }`}>
+                            {message.content}
+                          </ReactMarkdown>
+                        ) : (
+                          <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                            No content available
+                          </p>
+                        )}
                         
                         {message.sources && message.sources.length > 0 && (
                           <div className={`mt-5 pt-4 border-t ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
