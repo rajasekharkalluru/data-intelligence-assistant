@@ -32,6 +32,11 @@ function App() {
   const [newTeamData, setNewTeamData] = useState({ name: '', display_name: '', description: '' });
   const [settingsTab, setSettingsTab] = useState('ai');
 
+  // Set page title from branding
+  useEffect(() => {
+    document.title = `${branding.appName} - ${branding.appTagline}`;
+  }, []);
+
   const toggleDarkMode = () => {
     const newMode = !darkMode;
     setDarkMode(newMode);

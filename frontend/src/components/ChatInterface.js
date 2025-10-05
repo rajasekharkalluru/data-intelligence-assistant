@@ -1,4 +1,4 @@
-import { Bot, ExternalLink, Loader2, Send, Sparkles, User } from 'lucide-react';
+import { ExternalLink, Loader2, Send, Sparkles, User } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import branding from '../config/branding';
@@ -182,17 +182,15 @@ const ChatInterface = ({ selectedSources, settings, token, darkMode, sessions, c
             {messages.map((message) => (
               <div key={message.id} className={`flex gap-4 ${message.type === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
                 {/* Avatar */}
-                <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
-                  message.type === 'user'
-                    ? 'bg-gradient-to-br from-blue-500 to-indigo-600'
-                    : 'bg-gradient-to-br from-purple-500 to-pink-600'
-                } shadow-lg`}>
-                  {message.type === 'user' ? (
+                {message.type === 'user' ? (
+                  <div className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg">
                     <User className="w-5 h-5 text-white" />
-                  ) : (
-                    <Bot className="w-5 h-5 text-white" />
-                  )}
-                </div>
+                  </div>
+                ) : (
+                  <div className="flex-shrink-0 w-10 h-10 shadow-lg">
+                    <LogoIcon size="w-5 h-5" className="w-full h-full rounded-full" />
+                  </div>
+                )}
 
                 {/* Message Content */}
                 <div className={`flex-1 ${message.type === 'user' ? 'text-right' : 'text-left'}`}>
@@ -280,8 +278,8 @@ const ChatInterface = ({ selectedSources, settings, token, darkMode, sessions, c
 
             {isLoading && (
               <div className="flex gap-4">
-                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center shadow-lg">
-                  <Bot className="w-5 h-5 text-white" />
+                <div className="flex-shrink-0 w-10 h-10 shadow-lg">
+                  <LogoIcon size="w-5 h-5" className="w-full h-full rounded-full" />
                 </div>
                 <div className={`rounded-2xl px-5 py-3 shadow-md border ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100'}`}>
                   <div className="flex items-center gap-2">
