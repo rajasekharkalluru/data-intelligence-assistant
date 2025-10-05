@@ -97,16 +97,37 @@ else
 fi
 echo ""
 
-# Check 6: Ollama
-echo -e "${BLUE}[6/10]${NC} Checking Ollama service..."
-OLLAMA_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:11434/api/tags 2>/dev/null)
-if [ "$OLLAMA_RESPONSE" = "200" ]; then
-    MODEL_COUNT=$(curl -s http://localhost:11434/api/tags 2>/dev/null | grep -o '"name"' | wc -l)
-    echo -e "${GREEN}✅ Ollama running with $MODEL_COUNT model(s)${NC}"
+# Check 6: AI Provider
+echo -e "${BLUE}[6/10]${NC} Checking AI provider..."
+AI_PROVIDER=${AI_PROVIDER:-local}
+echo -e "   Provider: ${AI_PROVIDER}"
+
+if [ "$AI_PROVIDER" = "local" ]; then
+    OLLAMA_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:11434/api/tags 2>/dev/null)
+    if [ "$OLLAMA_RESPONSE" = "200" ]; then
+        MODEL_COUNT=$(curl -s http://localhost:11434/api/tags 2>/dev/null | grep -o '"name"' | wc -l)
+        echo -e "${GREEN}✅ Ollama running with $MODEL_COUNT model(s)${NC}"
+    else
+        echo -e "${YELLOW}⚠ Ollama not running or not accessible${NC}"
+        echo "   Fix: Start Ollama service or switch to OCI provider"
+    fi
+elif [ "$AI_PROVIDER" = "oci" ]; then
+    if [ -f ~/.oci/config ]; then
+        echo -e "${GREEN}✅ OCI config file found${NC}"
+        if [ -n "$OCI_COMPARTMENT_ID" ]; then
+            echo -e "   ${GREEN}✓${NC} Compartment ID configured"
+        else
+            echo -e "   ${YELLOW}⚠${NC} OCI_COMPARTMENT_ID not set"
+            echo "   Fix: Set OCI_COMPARTMENT_ID environment variable"
+        fi
+    else
+        echo -e "${RED}❌ OCI config not found${NC}"
+        echo "   Fix: Run 'oci setup config' or see backend/OCI_SETUP.md"
+        ISSUES_FOUND=$((ISSUES_FOUND + 1))
+    fi
 else
-    echo -e "${YELLOW}⚠ Ollama not running or not accessible${NC}"
-    echo "   Info: Models endpoint will return defaults"
-    echo "   Fix: Start Ollama service"
+    echo -e "${YELLOW}⚠ Unknown AI provider: $AI_PROVIDER${NC}"
+    echo "   Valid options: local, oci"
 fi
 echo ""
 

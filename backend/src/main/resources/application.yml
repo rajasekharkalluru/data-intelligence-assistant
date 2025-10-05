@@ -38,10 +38,32 @@ app:
   encryption:
     key: ${ENCRYPTION_KEY:your-encryption-key-change-in-production}
   
+  # AI Provider Configuration
+  ai:
+    provider: ${AI_PROVIDER:local}  # Options: local, oci
+    
+  # Local Ollama Configuration (when provider=local)
   ollama:
     base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
     model: ${OLLAMA_MODEL:llama3.2}
     timeout: 120
+  
+  # OCI Generative AI Configuration (when provider=oci)
+  oci:
+    # Authentication
+    config-file: ${OCI_CONFIG_FILE:~/.oci/config}
+    profile: ${OCI_PROFILE:DEFAULT}
+    
+    # Generative AI Service
+    generative-ai:
+      endpoint: ${OCI_GENAI_ENDPOINT:https://inference.generativeai.us-chicago-1.oci.oraclecloud.com}
+      compartment-id: ${OCI_COMPARTMENT_ID:}
+      model-id: ${OCI_MODEL_ID:cohere.command-r-plus}  # Options: cohere.command-r-plus, meta.llama-3-70b-instruct
+      
+    # Embedding Service
+    embedding:
+      endpoint: ${OCI_EMBEDDING_ENDPOINT:https://inference.generativeai.us-chicago-1.oci.oraclecloud.com}
+      model-id: ${OCI_EMBEDDING_MODEL_ID:cohere.embed-english-v3.0}
   
   embeddings:
     model: all-MiniLM-L6-v2

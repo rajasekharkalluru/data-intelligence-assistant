@@ -13,10 +13,11 @@ AI-powered knowledge base system that integrates with your development tools (Co
 
 - 🤖 **Multiple Interfaces**: Web UI, CLI, and Slack Bot (all in Java!)
 - 🔌 **Data Source Connectors**: Confluence, Bitbucket, JIRA
-- 🧠 **Local AI**: Uses Ollama (llama3.2) for privacy-focused responses
+- 🧠 **Flexible AI**: Local Ollama OR Oracle Cloud Infrastructure (OCI) Generative AI
 - 📊 **Vector Search**: LangChain4j with embeddings for semantic search
 - 🔐 **Secure**: JWT authentication with encrypted credential storage
 - 🔄 **Smart Sync**: Incremental and event-driven updates
+- ☁️ **Cloud Ready**: Easy switch between local and OCI AI services
 - ☕ **Java Backend**: Spring Boot 3.2.1 with modern architecture
 
 ## Quick Start
@@ -110,14 +111,47 @@ See [slack-bot/README.md](slack-bot/README.md) for full setup instructions.
 
 ## Configuration
 
+### AI Provider Setup
+
+The application supports two AI providers:
+
+#### Local Ollama (Default)
+```bash
+# Install Ollama
+curl -fsSL https://ollama.ai/install.sh | sh
+
+# Pull a model
+ollama pull llama3.2
+
+# Application will use local Ollama automatically
+```
+
+#### Oracle Cloud Infrastructure (OCI)
+For enterprise deployments, you can use OCI Generative AI:
+
+```bash
+# Set environment variable
+export AI_PROVIDER=oci
+
+# Configure OCI credentials (see backend/OCI_SETUP.md)
+```
+
+**Benefits of OCI:**
+- ☁️ No local GPU required
+- 🚀 Faster inference with cloud GPUs
+- 📈 Scalable for production workloads
+- 🔒 Enterprise-grade security
+
+See [backend/OCI_SETUP.md](backend/OCI_SETUP.md) for detailed OCI configuration.
+
 ### Application Properties
 
-The backend uses `application.properties` for configuration. Default settings work out of the box:
+The backend uses `application.yml` for configuration. Default settings work out of the box:
 - SQLite database (auto-created)
 - JWT secret (auto-generated)
-- Ollama integration (llama3.2 model)
+- Local Ollama integration (llama3.2 model)
 
-See `backend/src/main/resources/application.properties` for customization options.
+See `backend/src/main/resources/application.yml` for customization options.
 
 ### Adding Data Sources
 

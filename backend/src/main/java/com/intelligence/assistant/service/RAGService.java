@@ -1,14 +1,9 @@
 package com.intelligence.assistant.service;
 
-import dev.langchain4j.data.message.AiMessage;
-import dev.langchain4j.data.message.UserMessage;
-import dev.langchain4j.model.chat.ChatLanguageModel;
-import dev.langchain4j.model.ollama.OllamaChatModel;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -16,25 +11,10 @@ import java.util.Map;
 
 @Service
 @Slf4j
+@RequiredArgsConstructor
 public class RAGService {
     
-    @Value("${app.ollama.base-url}")
-    private String ollamaBaseUrl;
-    
-    @Value("${app.ollama.model}")
-    private String defaultModel;
-    
-    @Value("${app.ollama.timeout}")
-    private int timeout;
-    
-    private ChatLanguageModel getChatModel(String modelName, Double temperature) {
-        return OllamaChatModel.builder()
-                .baseUrl(ollamaBaseUrl)
-                .modelName(modelName != null ? modelName : defaultModel)
-                .temperature(temperature != null ? temperature : 0.7)
-                .timeout(Duration.ofSeconds(timeout))
-                .build();
-    }
+    private final AIService aiService;
     
     public Map<String, Object> query(
             String query,
@@ -52,9 +32,8 @@ public class RAGService {
             // Build prompt based on response type
             String prompt = buildPrompt(query, context, responseType);
             
-            // Get response from Ollama
-            ChatLanguageModel chatModel = getChatModel(model, temperature);
-            String response = chatModel.generate(prompt);
+            // Get response from AI service (local or OCI)
+            String response = aiService.generate(prompt, model, temperature);
             
             // Build response
             Map<String, Object> result = new HashMap<>();
