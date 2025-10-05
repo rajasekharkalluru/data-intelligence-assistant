@@ -12,4 +12,6 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
     List<ChatMessage> findBySessionIdOrderByTimestampAsc(Long sessionId);
     
     List<ChatMessage> findBySessionId(Long sessionId);
+    
+    long countBySessionId(Long sessionId);
 }

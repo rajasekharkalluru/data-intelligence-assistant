@@ -4,6 +4,7 @@ import com.intelligence.assistant.dto.QueryRequest;
 import com.intelligence.assistant.model.ChatMessage;
 import com.intelligence.assistant.model.ChatSession;
 import com.intelligence.assistant.model.User;
+import com.intelligence.assistant.repository.ChatMessageRepository;
 import com.intelligence.assistant.service.ChatService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +26,7 @@ import java.util.stream.Collectors;
 public class ChatController {
     
     private final ChatService chatService;
+    private final ChatMessageRepository messageRepository;
     
     @GetMapping("/sessions")
     public ResponseEntity<List<Map<String, Object>>> getSessions(@AuthenticationPrincipal User user) {
@@ -39,7 +41,7 @@ public class ChatController {
                     sessionMap.put("title", session.getTitle());
                     sessionMap.put("created_at", session.getCreatedAt());
                     sessionMap.put("updated_at", session.getUpdatedAt());
-                    sessionMap.put("message_count", 0); // Avoid lazy loading issue
+                    sessionMap.put("message_count", messageRepository.countBySessionId(session.getId()));
                     return sessionMap;
                 })
                 .collect(Collectors.toList());
