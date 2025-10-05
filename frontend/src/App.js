@@ -59,6 +59,7 @@ function App() {
         const userData = await response.json();
         setUser(userData);
       } else {
+        console.warn('Invalid or expired token, logging out');
         handleLogout();
       }
     } catch (error) {

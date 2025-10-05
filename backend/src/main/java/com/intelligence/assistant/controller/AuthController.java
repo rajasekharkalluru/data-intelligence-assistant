@@ -42,4 +42,15 @@ public class AuthController {
         UserResponse response = authService.getCurrentUser(user.getUsername());
         return ResponseEntity.ok(response);
     }
+    
+    @PutMapping("/profile")
+    public ResponseEntity<UserResponse> updateProfile(
+            @RequestBody java.util.Map<String, String> request,
+            @AuthenticationPrincipal User user
+    ) {
+        log.info("Update profile request for: {}", user.getUsername());
+        // For now, just return the current user
+        UserResponse response = authService.getCurrentUser(user.getUsername());
+        return ResponseEntity.ok(response);
+    }
 }

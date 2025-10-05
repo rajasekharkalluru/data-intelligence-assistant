@@ -61,18 +61,18 @@ const ChatInterface = ({ selectedSources, settings, token, darkMode, sessions, c
     setIsLoading(true);
 
     try {
-      const response = await fetch('/query', {
+      const response = await fetch('/chat/query', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          question: inputValue,
-          sources: selectedSources.length > 0 ? selectedSources : null,
-          response_type: settings.responseType,
+          query: inputValue,
+          sourceIds: selectedSources.length > 0 ? selectedSources : null,
+          responseType: settings.responseType,
           temperature: settings.temperature,
-          session_id: currentSessionId,
+          sessionId: currentSessionId,
           model: selectedModel
         })
       });

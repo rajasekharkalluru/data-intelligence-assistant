@@ -1,6 +1,8 @@
 package com.intelligence.assistant.security;
 
 import com.intelligence.assistant.service.UserService;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.MalformedJwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -44,6 +46,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         try {
             // Extract JWT token
             jwt = authHeader.substring(7);
+            
+            // Check if token is empty or malformed
+            if (jwt.isEmpty() || jwt.split("\\.").length != 3) {
+                log.warn("Malformed JWT token received");
+                filterChain.doFilter(request, response);
+                return;
+            }
+            
             username = jwtUtil.extractUsername(jwt);
             
             // If username is extracted and no authentication exists in context
@@ -64,8 +74,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     log.debug("Authenticated user: {}", username);
                 }
             }
+        } catch (MalformedJwtException e) {
+            log.warn("Malformed JWT token: {}", e.getMessage());
+        } catch (ExpiredJwtException e) {
+            log.warn("Expired JWT token: {}", e.getMessage());
+        } catch (io.jsonwebtoken.security.SignatureException e) {
+            log.warn("Invalid JWT signature: {}", e.getMessage());
         } catch (Exception e) {
-            log.error("Cannot set user authentication", e);
+            log.error("JWT authentication error: {}", e.getMessage());
         }
         
         filterChain.doFilter(request, response);

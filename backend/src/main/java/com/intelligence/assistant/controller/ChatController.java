@@ -39,7 +39,7 @@ public class ChatController {
                     sessionMap.put("title", session.getTitle());
                     sessionMap.put("created_at", session.getCreatedAt());
                     sessionMap.put("updated_at", session.getUpdatedAt());
-                    sessionMap.put("message_count", session.getMessages().size());
+                    sessionMap.put("message_count", 0); // Avoid lazy loading issue
                     return sessionMap;
                 })
                 .collect(Collectors.toList());

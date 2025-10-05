@@ -44,13 +44,14 @@ const AuthForm = ({ onLogin }) => {
       if (response.ok) {
         if (isLogin) {
           // Login successful
+          const token = data.accessToken || data.access_token;
           const userResponse = await fetch('/auth/me', {
             headers: {
-              'Authorization': `Bearer ${data.access_token}`
+              'Authorization': `Bearer ${token}`
             }
           });
           const userData = await userResponse.json();
-          onLogin(data.access_token, userData);
+          onLogin(token, userData);
         } else {
           // Registration successful, switch to login
           setIsLogin(true);
@@ -58,7 +59,7 @@ const AuthForm = ({ onLogin }) => {
           setFormData({ ...formData, password: '' });
         }
       } else {
-        setError(data.detail || 'An error occurred');
+        setError(data.detail || data.message || 'An error occurred');
       }
     } catch (error) {
       setError('Network error. Please try again.');
