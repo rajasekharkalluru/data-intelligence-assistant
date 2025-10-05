@@ -1,10 +1,10 @@
 #!/bin/bash
 
-# Developer Intelligence Assistant - Backend Startup Script
+# Developer Intelligence Assistant - Java Backend Startup Script
 
 set -e
 
-echo "🚀 Starting Developer Intelligence Assistant Backend..."
+echo "🚀 Starting Developer Intelligence Assistant Backend (Java)..."
 
 # Colors for output
 RED='\033[0;31m'
@@ -32,9 +32,17 @@ port_in_use() {
 
 echo -e "${BLUE}Checking prerequisites...${NC}"
 
-# Check Python
-if ! command_exists python; then
-    echo -e "${RED}❌ Python 3 is required but not installed${NC}"
+# Check Java
+if ! command_exists java; then
+    echo -e "${RED}❌ Java is required but not installed${NC}"
+    echo -e "${YELLOW}   Please install Java 21 or later${NC}"
+    exit 1
+fi
+
+# Check Maven
+if ! command_exists mvn; then
+    echo -e "${RED}❌ Maven is required but not installed${NC}"
+    echo -e "${YELLOW}   Please install Maven from: https://maven.apache.org${NC}"
     exit 1
 fi
 
@@ -46,47 +54,8 @@ fi
 
 echo -e "${GREEN}✅ Prerequisites check completed${NC}"
 
-# Create data directory for ChromaDB and SQLite
-mkdir -p backend/data
-
-# Check if virtual environment exists
-if [ ! -d "backend/venv" ]; then
-    echo -e "${BLUE}Creating Python virtual environment...${NC}"
-    cd backend
-    python -m venv venv
-    cd ..
-fi
-
-# Activate virtual environment and install dependencies
-echo -e "${BLUE}Installing Python dependencies...${NC}"
+# Navigate to backend directory
 cd backend
-source venv/bin/activate
-
-# Upgrade pip first
-pip install --upgrade pip
-
-# Install dependencies with error handling
-if ! pip install -r requirements.txt; then
-    echo -e "${RED}❌ Failed to install Python dependencies${NC}"
-    echo -e "${YELLOW}Trying to install with --no-cache-dir...${NC}"
-    pip install --no-cache-dir -r requirements.txt
-fi
-
-# Initialize database
-echo -e "${BLUE}Initializing database...${NC}"
-if [ -f "init_db.py" ]; then
-    python init_db.py
-else
-    echo -e "${YELLOW}⚠️  init_db.py not found, skipping database initialization${NC}"
-fi
-
-# Seed demo accounts
-echo -e "${BLUE}Creating demo accounts...${NC}"
-if [ -f "seed_demo_accounts.py" ]; then
-    python seed_demo_accounts.py
-else
-    echo -e "${YELLOW}⚠️  seed_demo_accounts.py not found, skipping demo accounts${NC}"
-fi
 
 # Check if Ollama model is available
 if command_exists ollama; then
@@ -109,38 +78,14 @@ else
     echo -e "${YELLOW}⚠️  Ollama not installed. AI features will not work.${NC}"
 fi
 
-# Create .env file if it doesn't exist
-if [ ! -f ".env" ]; then
-    echo -e "${BLUE}Creating environment configuration...${NC}"
-    
-    # Generate a random secret key
-    SECRET_KEY=$(python -c "import secrets; print(secrets.token_urlsafe(32))")
-    ENCRYPTION_KEY=$(python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")
-    
-    cat > .env << EOF
-# Security Configuration
-SECRET_KEY=${SECRET_KEY}
-ENCRYPTION_KEY=${ENCRYPTION_KEY}
-
-# Database Configuration (SQLite for development)
-DATABASE_URL=sqlite:///./data/dia.db
-
-# Ollama Configuration
-OLLAMA_MODEL=llama3.2
-
-# Slack Bot Configuration (optional)
-# SLACK_BOT_TOKEN=xoxb-your-bot-token
-# SLACK_APP_TOKEN=xapp-your-app-token
-EOF
-    echo -e "${GREEN}✅ Created .env file with secure keys.${NC}"
-fi
-
-# Check if the main app exists
-if [ ! -f "app/main.py" ]; then
-    echo -e "${RED}❌ Backend app/main.py not found${NC}"
-    deactivate
+# Build the application
+echo -e "${BLUE}Building Java application...${NC}"
+if ! mvn clean package -DskipTests; then
+    echo -e "${RED}❌ Failed to build Java application${NC}"
     exit 1
 fi
+
+echo -e "${GREEN}✅ Build successful${NC}"
 
 # Check if port 8000 is already in use
 if port_in_use 8000; then
@@ -158,20 +103,16 @@ fi
 # Function to cleanup on exit
 cleanup() {
     echo -e "\n${YELLOW}Shutting down backend server...${NC}"
-    deactivate 2>/dev/null || true
     exit 0
 }
 
 trap cleanup SIGINT SIGTERM
 
 # Start backend
-echo -e "${BLUE}Starting backend server...${NC}"
+echo -e "${BLUE}Starting Java backend server...${NC}"
 echo -e "${BLUE}Backend will be available at: http://localhost:8000${NC}"
-echo -e "${BLUE}API Documentation: http://localhost:8000/docs${NC}"
+echo -e "${BLUE}API Documentation: http://localhost:8000/swagger-ui.html${NC}"
 echo -e "\n${YELLOW}Press Ctrl+C to stop the backend server${NC}\n"
 
 # Start backend with proper error handling
-python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-
-# Deactivate virtual environment on exit
-deactivate
+java -jar target/assistant-1.0.0.jar

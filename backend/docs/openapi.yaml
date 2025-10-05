@@ -1,0 +1,798 @@
+openapi: 3.0.3
+info:
+  title: Developer Intelligence Assistant API
+  description: |
+    AI-powered knowledge base system with RAG (Retrieval-Augmented Generation) that integrates with development tools.
+    
+    ## Authentication
+    Most endpoints require JWT authentication. Include the token in the Authorization header:
+    ```
+    Authorization: Bearer <your-jwt-token>
+    ```
+    
+    ## Features
+    - User authentication and management
+    - Chat sessions with AI-powered responses
+    - Data source integration (Confluence, JIRA, Bitbucket)
+    - Real-time data synchronization
+    - RAG-based query system
+    
+  version: 1.0.0
+  contact:
+    name: API Support
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8000
+    description: Local development server
+  - url: https://api.example.com
+    description: Production server
+
+tags:
+  - name: Health
+    description: Health check endpoints
+  - name: Authentication
+    description: User authentication and registration
+  - name: Chat
+    description: Chat sessions and AI query endpoints
+  - name: Data Sources
+    description: Data source management and synchronization
+
+paths:
+  /:
+    get:
+      tags:
+        - Health
+      summary: Root endpoint
+      description: Returns API information
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Developer Intelligence Assistant API
+                  version:
+                    type: string
+                    example: 1.0.0
+
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Health check
+      description: Check if the API is running
+      responses:
+        '200':
+          description: API is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: healthy
+                  timestamp:
+                    type: string
+                    format: date-time
+
+  /auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: Register a new user
+      description: Create a new user account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '200':
+          description: Registration successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Invalid input or username already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: Login
+      description: Authenticate user and receive JWT token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/me:
+    get:
+      tags:
+        - Authentication
+      summary: Get current user
+      description: Get the currently authenticated user's information
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User information retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /chat/sessions:
+    get:
+      tags:
+        - Chat
+      summary: Get all chat sessions
+      description: Retrieve all chat sessions for the authenticated user
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of chat sessions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ChatSession'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      tags:
+        - Chat
+      summary: Create a new chat session
+      description: Create a new chat session for the authenticated user
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Chat session created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatSession'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /chat/sessions/{sessionId}:
+    put:
+      tags:
+        - Chat
+      summary: Update chat session
+      description: Update chat session title
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                  example: My Chat Session
+      responses:
+        '200':
+          description: Session updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Session updated successfully
+        '401':
+          description: Not authenticated
+        '404':
+          description: Session not found
+
+    delete:
+      tags:
+        - Chat
+      summary: Delete chat session
+      description: Delete a chat session and all its messages
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Session deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Session deleted successfully
+        '401':
+          description: Not authenticated
+        '404':
+          description: Session not found
+
+  /chat/sessions/{sessionId}/messages:
+    get:
+      tags:
+        - Chat
+      summary: Get session messages
+      description: Retrieve all messages for a specific chat session
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: List of messages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ChatMessage'
+        '401':
+          description: Not authenticated
+        '404':
+          description: Session not found
+
+  /chat/query:
+    post:
+      tags:
+        - Chat
+      summary: Query the AI assistant
+      description: Send a query to the AI assistant and get a response using RAG
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QueryRequest'
+      responses:
+        '200':
+          description: Query response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QueryResponse'
+        '400':
+          description: Invalid query
+        '401':
+          description: Not authenticated
+
+  /data-sources:
+    get:
+      tags:
+        - Data Sources
+      summary: Get all data sources
+      description: Retrieve all data sources for the authenticated user
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of data sources
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DataSource'
+        '401':
+          description: Not authenticated
+
+    post:
+      tags:
+        - Data Sources
+      summary: Create a data source
+      description: Create a new data source (Confluence, JIRA, or Bitbucket)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DataSourceRequest'
+      responses:
+        '200':
+          description: Data source created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataSource'
+        '400':
+          description: Invalid input
+        '401':
+          description: Not authenticated
+
+  /data-sources/{id}:
+    get:
+      tags:
+        - Data Sources
+      summary: Get a data source
+      description: Retrieve a specific data source by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Data source details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataSource'
+        '401':
+          description: Not authenticated
+        '404':
+          description: Data source not found
+
+    put:
+      tags:
+        - Data Sources
+      summary: Update a data source
+      description: Update data source configuration
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DataSourceRequest'
+      responses:
+        '200':
+          description: Data source updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataSource'
+        '400':
+          description: Invalid input
+        '401':
+          description: Not authenticated
+        '404':
+          description: Data source not found
+
+    delete:
+      tags:
+        - Data Sources
+      summary: Delete a data source
+      description: Delete a data source and all its synced data
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Data source deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Data source deleted successfully
+        '401':
+          description: Not authenticated
+        '404':
+          description: Data source not found
+
+  /data-sources/{id}/test:
+    post:
+      tags:
+        - Data Sources
+      summary: Test data source connection
+      description: Test if the data source credentials are valid and connection works
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Connection test result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [success, failed]
+                    example: success
+                  connected:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Connection successful
+        '401':
+          description: Not authenticated
+        '404':
+          description: Data source not found
+
+  /data-sources/{id}/sync:
+    post:
+      tags:
+        - Data Sources
+      summary: Sync data source
+      description: Trigger synchronization of data from the source
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Sync initiated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Sync completed successfully
+                  documentsProcessed:
+                    type: integer
+                    example: 42
+        '401':
+          description: Not authenticated
+        '404':
+          description: Data source not found
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from /auth/login or /auth/register
+
+  schemas:
+    RegisterRequest:
+      type: object
+      required:
+        - username
+        - email
+        - password
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 50
+          example: johndoe
+        email:
+          type: string
+          format: email
+          example: john@example.com
+        password:
+          type: string
+          minLength: 6
+          format: password
+          example: securepassword123
+
+    AuthRequest:
+      type: object
+      required:
+        - username
+        - password
+      properties:
+        username:
+          type: string
+          example: johndoe
+        password:
+          type: string
+          format: password
+          example: securepassword123
+
+    AuthResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        tokenType:
+          type: string
+          example: Bearer
+        user:
+          $ref: '#/components/schemas/UserResponse'
+
+    UserResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        username:
+          type: string
+          example: johndoe
+        email:
+          type: string
+          format: email
+          example: john@example.com
+        isActive:
+          type: boolean
+          example: true
+        isAdmin:
+          type: boolean
+          example: false
+        createdAt:
+          type: string
+          format: date-time
+          example: 2025-01-15T10:30:00Z
+
+    ChatSession:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        title:
+          type: string
+          example: My Chat Session
+        createdAt:
+          type: string
+          format: date-time
+          example: 2025-01-15T10:30:00Z
+        updatedAt:
+          type: string
+          format: date-time
+          example: 2025-01-15T11:45:00Z
+        messageCount:
+          type: integer
+          example: 5
+
+    ChatMessage:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        role:
+          type: string
+          enum: [user, assistant]
+          example: user
+        content:
+          type: string
+          example: How do I deploy the application?
+        createdAt:
+          type: string
+          format: date-time
+          example: 2025-01-15T10:30:00Z
+
+    QueryRequest:
+      type: object
+      required:
+        - query
+      properties:
+        query:
+          type: string
+          example: How do I deploy the application?
+        sourceIds:
+          type: array
+          items:
+            type: integer
+            format: int64
+          example: [1, 2]
+          description: Optional list of data source IDs to query
+        sessionId:
+          type: integer
+          format: int64
+          example: 1
+          description: Optional session ID to associate the query with
+        responseType:
+          type: string
+          enum: [brief, concise, expansive]
+          default: concise
+          example: concise
+        temperature:
+          type: number
+          format: double
+          minimum: 0.0
+          maximum: 1.0
+          default: 0.7
+          example: 0.7
+        model:
+          type: string
+          default: llama3.2
+          example: llama3.2
+
+    QueryResponse:
+      type: object
+      properties:
+        response:
+          type: string
+          example: To deploy the application, follow these steps...
+        sources:
+          type: array
+          items:
+            type: string
+          example: ["Confluence: Deployment Guide", "JIRA: DEPLOY-123"]
+        sessionId:
+          type: integer
+          format: int64
+          example: 1
+        messageId:
+          type: integer
+          format: int64
+          example: 42
+
+    DataSourceRequest:
+      type: object
+      required:
+        - name
+        - displayName
+        - sourceType
+      properties:
+        name:
+          type: string
+          example: main-confluence
+        displayName:
+          type: string
+          example: Main Confluence Space
+        sourceType:
+          type: string
+          enum: [confluence, jira, bitbucket]
+          example: confluence
+        credentials:
+          type: object
+          additionalProperties:
+            type: string
+          example:
+            url: https://company.atlassian.net
+            username: user@example.com
+            apiToken: your-api-token
+            spaceKey: MAIN
+
+    DataSource:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        name:
+          type: string
+          example: main-confluence
+        displayName:
+          type: string
+          example: Main Confluence Space
+        sourceType:
+          type: string
+          enum: [confluence, jira, bitbucket]
+          example: confluence
+        isActive:
+          type: boolean
+          example: true
+        syncStatus:
+          type: string
+          enum: [pending, in_progress, completed, failed]
+          example: completed
+        lastSync:
+          type: string
+          format: date-time
+          example: 2025-01-15T10:30:00Z
+        createdAt:
+          type: string
+          format: date-time
+          example: 2025-01-15T09:00:00Z
+        updatedAt:
+          type: string
+          format: date-time
+          example: 2025-01-15T10:30:00Z
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          example: Invalid credentials
+        message:
+          type: string
+          example: The username or password is incorrect
+        timestamp:
+          type: string
+          format: date-time
+          example: 2025-01-15T10:30:00Z

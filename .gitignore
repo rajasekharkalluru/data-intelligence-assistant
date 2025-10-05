@@ -1,142 +1,24 @@
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-share/python-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
+# Java / Maven
+target/
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+hs_err_pid*
+replay_pid*
 
-# Virtual environments
-backend/venv/
-venv/
-env/
-ENV/
-env.bak/
-venv.bak/
-
-# PyCharm
+# IDE
 .idea/
-
-# VS Code
+*.iml
+*.ipr
+*.iws
 .vscode/
-
-# Environment variables
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-# Database
-*.db
-*.sqlite
-*.sqlite3
-
-# Data directories
-backend/data/
-data/
-
-# Logs
-*.log
-logs/
-
-# Node.js
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-lerna-debug.log*
-.pnpm-debug.log*
-
-# Runtime data
-pids
-*.pid
-*.seed
-*.pid.lock
-
-# Coverage directory used by tools like istanbul
-coverage/
-*.lcov
-
-# nyc test coverage
-.nyc_output
-
-# Dependency directories
-jspm_packages/
-
-# Optional npm cache directory
-.npm
-
-# Optional eslint cache
-.eslintcache
-
-# Optional stylelint cache
-.stylelintcache
-
-# Microbundle cache
-.rpt2_cache/
-.rts2_cache_cjs/
-.rts2_cache_es/
-.rts2_cache_umd/
-
-# Optional REPL history
-.node_repl_history
-
-# Output of 'npm pack'
-*.tgz
-
-# Yarn Integrity file
-.yarn-integrity
-
-# parcel-bundler cache (https://parceljs.org/)
-.cache
-.parcel-cache
-
-# Next.js build output
-.next
-out
-
-# Nuxt.js build / generate output
-.nuxt
-dist
-
-# Gatsby files
-.cache/
-public
-
-# Storybook build outputs
-.out
-.storybook-out
-storybook-static
-
-# Temporary folders
-tmp/
-temp/
-
-# Editor directories and files
-.vscode/
-.idea/
 *.swp
 *.swo
 *~
 
-# OS generated files
+# OS
 .DS_Store
 .DS_Store?
 ._*
@@ -145,129 +27,41 @@ temp/
 ehthumbs.db
 Thumbs.db
 
-# ChromaDB
-chroma_db/
-*.chroma
+# Node.js / Frontend
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+.cache
+.parcel-cache
+build/
+dist/
 
-# Ollama models (if stored locally)
-*.gguf
-models/
+# Database
+*.db
+*.sqlite
+*.sqlite3
+backend/data/
+data/
 
-# CLI token file
+# Logs
+*.log
+logs/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# CLI
+.dia/
 .dia_token
 
-# Backup files
+# Backup
 *.bak
 *.backup
 
-# Test files
-.pytest_cache/
-.coverage
-htmlcov/
-
-# Docker
-.dockerignore
-Dockerfile.dev
-
-# Terraform
-*.tfstate
-*.tfstate.*
-.terraform/
-.terraform.lock.hcl
-
-# Kubernetes
-*.kubeconfig
-
-# SSL certificates
-*.pem
-*.key
-*.crt
-*.csr
-
-# Secrets and credentials
-secrets/
-credentials/
-*.secret
-
-# Build artifacts
-build/
-dist/
-*.tar.gz
-*.zip
-
-# IDE specific files
-*.sublime-project
-*.sublime-workspace
-
-# JetBrains
-.idea/
-*.iml
-*.ipr
-*.iws
-
-# Emacs
-*~
-\#*\#
-/.emacs.desktop
-/.emacs.desktop.lock
-*.elc
-auto-save-list
-tramp
-.\#*
-
-# Vim
-*.swp
-*.swo
-*.un~
-Session.vim
-.netrwhist
-
-# Local configuration overrides
-local_settings.py
-local_config.json
-
-# Performance monitoring
-.clinic/
-.0x/
-
-# Documentation build
-docs/_build/
-site/
-
-# Jupyter Notebook
-.ipynb_checkpoints
-
-# IPython
-profile_default/
-ipython_config.py
-
-# Celery
-celerybeat-schedule
-celerybeat.pid
-
-# SageMath parsed files
-*.sage.py
-
-# Spyder project settings
-.spyderproject
-.spyproject
-
-# Rope project settings
-.ropeproject
-
-# mkdocs documentation
-/site
-
-# mypy
-.mypy_cache/
-.dmypy.json
-dmypy.json
-
-# Pyre type checker
-.pyre/
-
-# pytype static type analyzer
-.pytype/
-
-# Cython debug symbols
-cython_debug/
+# Temporary
+tmp/
+temp/

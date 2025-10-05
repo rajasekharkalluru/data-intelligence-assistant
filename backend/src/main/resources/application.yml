@@ -1,0 +1,88 @@
+spring:
+  application:
+    name: data-intelligence-assistant
+  
+  datasource:
+    url: jdbc:sqlite:./data/intelligence.db
+    driver-class-name: org.sqlite.JDBC
+  
+  jpa:
+    database-platform: org.hibernate.community.dialect.SQLiteDialect
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+        jdbc:
+          time_zone: UTC
+  
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    default-property-inclusion: non_null
+
+server:
+  port: 8000
+  error:
+    include-message: always
+    include-binding-errors: always
+
+# Application Configuration
+app:
+  jwt:
+    secret: ${JWT_SECRET:your-secret-key-change-in-production}
+    expiration: 86400000 # 24 hours in milliseconds
+  
+  encryption:
+    key: ${ENCRYPTION_KEY:your-encryption-key-change-in-production}
+  
+  ollama:
+    base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
+    model: ${OLLAMA_MODEL:llama3.2}
+    timeout: 120
+  
+  embeddings:
+    model: all-MiniLM-L6-v2
+    dimension: 384
+  
+  vector-store:
+    type: in-memory  # Options: in-memory, chroma
+    url: ${CHROMA_URL:http://localhost:8001}
+    collection: intelligence_docs
+  
+  sync:
+    batch-size: 100
+    chunk-size: 1000
+    chunk-overlap: 100
+
+# Logging
+logging:
+  level:
+    root: INFO
+    com.intelligence.assistant: DEBUG
+    org.springframework.security: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: ./logs/application.log
+
+# CORS Configuration
+cors:
+  allowed-origins: http://localhost:3000
+  allowed-methods: GET,POST,PUT,DELETE,OPTIONS
+  allowed-headers: "*"
+  allow-credentials: true
+
+# Springdoc OpenAPI Configuration
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui
+    enabled: true
+    tags-sorter: alpha
+    operations-sorter: alpha
+  show-actuator: false

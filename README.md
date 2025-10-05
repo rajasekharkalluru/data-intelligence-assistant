@@ -1,9 +1,9 @@
 # Developer Intelligence Assistant
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![Java 21+](https://img.shields.io/badge/java-21+-blue.svg)](https://www.oracle.com/java/technologies/downloads/)
 [![Node.js 18+](https://img.shields.io/badge/node.js-18+-green.svg)](https://nodejs.org/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-009688.svg)](https://fastapi.tiangolo.com/)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2.1-6DB33F.svg)](https://spring.io/projects/spring-boot)
 [![React](https://img.shields.io/badge/React-18+-61DAFB.svg)](https://reactjs.org/)
 [![Ollama](https://img.shields.io/badge/Ollama-llama3.2-000000.svg)](https://ollama.ai/)
 
@@ -11,18 +11,20 @@ AI-powered knowledge base system that integrates with your development tools (Co
 
 ## Features
 
-- 🤖 **Multiple Interfaces**: Web UI, CLI, and Slack Bot
+- 🤖 **Multiple Interfaces**: Web UI, CLI, and Slack Bot (all in Java!)
 - 🔌 **Data Source Connectors**: Confluence, Bitbucket, JIRA
 - 🧠 **Local AI**: Uses Ollama (llama3.2) for privacy-focused responses
-- 📊 **Vector Search**: ChromaDB for semantic search
-- 🔐 **Secure**: User authentication with encrypted credential storage
+- 📊 **Vector Search**: LangChain4j with embeddings for semantic search
+- 🔐 **Secure**: JWT authentication with encrypted credential storage
 - 🔄 **Smart Sync**: Incremental and event-driven updates
+- ☕ **Java Backend**: Spring Boot 3.2.1 with modern architecture
 
 ## Quick Start
 
 ### Prerequisites
 
-- Python 3.11+
+- Java 21+ (or Java 25)
+- Maven 3.6+
 - Node.js 18+
 - [Ollama](https://ollama.ai) installed and running
 
@@ -50,12 +52,12 @@ AI-powered knowledge base system that integrates with your development tools (Co
 3. **Access the application**
    - Web UI: http://localhost:3000
    - API: http://localhost:8000
-   - API Docs: http://localhost:8000/docs
+   - API Docs: http://localhost:8000/swagger-ui/index.html
+   - OpenAPI Spec: [backend/docs/openapi.yaml](backend/docs/openapi.yaml)
 
-4. **Login with demo account**
-   - Click "Demo User" or "Admin User" button on login screen
-   - Or manually enter: `demo` / `demo123` or `admin` / `admin123`
-   - Or create your own account by clicking "Sign up"
+4. **Create your account**
+   - Click "Sign up" on the login screen
+   - Or use the registration endpoint directly
 
 ## Usage
 
@@ -66,49 +68,56 @@ AI-powered knowledge base system that integrates with your development tools (Co
 3. Sync your data
 4. Ask questions in the chat interface
 
-### CLI
+### CLI (Command Line)
 
 ```bash
+# Build the CLI
 cd cli
-pip install -r requirements.txt
+mvn clean package
 
-# Register and login
-./dia_cli.py register
-./dia_cli.py login
+# Create an alias (add to ~/.zshrc or ~/.bashrc)
+alias dia='java -jar /path/to/cli/target/dia-cli.jar'
 
-# Ask questions
-./dia_cli.py ask "How do I deploy the application?"
-
-# Manage sources
-./dia_cli.py sources
-./dia_cli.py sync 1
-
-# Interactive mode
-./dia_cli.py interactive
+# Use the CLI
+dia register
+dia login
+dia ask "How do I deploy the application?"
+dia sources
+dia sync 1
+dia interactive  # Start interactive chat mode
 ```
+
+See [cli/README.md](cli/README.md) for full documentation.
 
 ### Slack Bot
 
-1. Create a Slack app at https://api.slack.com/apps
-2. Enable Socket Mode and generate tokens
-3. Add Bot Token Scopes: `chat:write`, `im:read`, `channels:read`
-4. Set environment variables in `backend/.env`:
-   ```env
-   SLACK_BOT_TOKEN=xoxb-your-bot-token
-   SLACK_APP_TOKEN=xapp-your-app-token
-   ```
-5. Run: `cd slack-bot && python slack_bot.py`
+```bash
+# Build the bot
+cd slack-bot
+mvn clean package
+
+# Configure (see slack-bot/README.md for Slack app setup)
+export SLACK_BOT_TOKEN="xoxb-your-token"
+export SLACK_APP_TOKEN="xapp-your-token"
+
+# Run the bot
+java -jar target/slack-bot.jar
+```
+
+Then mention the bot in Slack or send it a direct message!
+
+See [slack-bot/README.md](slack-bot/README.md) for full setup instructions.
 
 ## Configuration
 
-### Environment Variables
+### Application Properties
 
-The backend `.env` file is auto-generated on first run with secure keys. You only need to customize it if you want to:
-- Use a different Ollama model
-- Configure Slack bot tokens
-- Change database location
+The backend uses `application.properties` for configuration. Default settings work out of the box:
+- SQLite database (auto-created)
+- JWT secret (auto-generated)
+- Ollama integration (llama3.2 model)
 
-See `backend/.env.example` for available options.
+See `backend/src/main/resources/application.properties` for customization options.
 
 ### Adding Data Sources
 
@@ -130,23 +139,30 @@ See `backend/.env.example` for available options.
 
 ```
 data-intelligence-assistant/
-├── backend/              # FastAPI backend
-│   ├── app/
-│   │   ├── connectors/  # Data source connectors
-│   │   ├── models/      # Pydantic models
-│   │   ├── services/    # Business logic
-│   │   └── main.py      # FastAPI app
-│   ├── data/            # SQLite DB & ChromaDB
-│   └── requirements.txt
+├── backend/             # Spring Boot backend
+│   ├── src/main/java/com/intelligence/assistant/
+│   │   ├── connector/   # Data source connectors
+│   │   ├── controller/  # REST controllers
+│   │   ├── model/       # JPA entities
+│   │   ├── service/     # Business logic
+│   │   ├── security/    # JWT & authentication
+│   │   └── config/      # Spring configuration
+│   ├── src/main/resources/
+│   │   └── application.properties
+│   └── pom.xml
 ├── frontend/            # React frontend
 │   ├── src/
 │   │   ├── components/
 │   │   └── App.js
 │   └── package.json
 ├── cli/                 # Command-line interface
-│   └── dia_cli.py
-├── slack-bot/          # Slack bot integration
-│   └── slack_bot.py
+│   ├── src/main/java/com/intelligence/assistant/cli/
+│   ├── pom.xml
+│   └── README.md
+├── slack-bot/           # Slack bot integration
+│   ├── src/main/java/com/intelligence/assistant/slackbot/
+│   ├── pom.xml
+│   └── README.md
 └── scripts/            # Startup scripts
     ├── start-both.sh      # Auto-open both services
     ├── start-backend.sh   # Backend only
@@ -173,8 +189,8 @@ lsof -i :8000
 # Check logs in the terminal
 # Common issues: missing dependencies, Ollama not running
 cd backend
-source venv/bin/activate
-pip install -r requirements.txt
+mvn clean package
+java -jar target/assistant-1.0.0.jar
 ```
 
 **Frontend compilation errors**
@@ -184,22 +200,22 @@ rm -rf node_modules package-lock.json
 npm install
 ```
 
-**Proxy errors for favicon.ico**
+**Lombok compilation errors**
+```bash
+# Make sure you're using Java 21 or 25
+java --version
+# Rebuild with updated Lombok
+cd backend
+mvn clean compile
 ```
-Proxy error: Could not proxy request /favicon.ico
-```
-This warning is harmless and can be ignored. The backend doesn't serve favicons.
 
 ## Development
 
 ### What the Scripts Do
 
 The startup scripts will automatically:
-- Check prerequisites (Python, Node.js, Ollama)
-- Create Python virtual environment
-- Install all dependencies
-- Initialize SQLite database
-- Generate secure encryption keys
+- Check prerequisites (Java, Maven, Node.js, Ollama)
+- Build the Java application
 - Download Ollama model (llama3.2)
 - Start the services
 
@@ -210,11 +226,8 @@ If you prefer manual setup:
 **Backend:**
 ```bash
 cd backend
-python -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-python init_db.py
-python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+mvn clean package -DskipTests
+java -jar target/assistant-1.0.0.jar
 ```
 
 **Frontend:**
@@ -226,18 +239,25 @@ npm start
 
 ### Adding Custom Data Sources
 
-1. Create connector in `backend/app/connectors/your_connector.py`
+1. Create connector in `backend/src/main/java/com/intelligence/assistant/connector/YourConnector.java`
 2. Extend `BaseConnector` class
-3. Implement `fetch_documents()` method
-4. Register in `connector_service.py`
+3. Implement `fetchDocuments()` method
+4. Register in `DataSourceService.java`
+
+## API Documentation
+
+Complete API documentation is available:
+- **Interactive Docs**: http://localhost:8000/swagger-ui/index.html (when backend is running)
+- **OpenAPI Spec**: [backend/docs/openapi.yaml](backend/docs/openapi.yaml)
+- **API Guide**: [backend/docs/README.md](backend/docs/README.md)
 
 ## Tech Stack
 
-- **Backend**: FastAPI, SQLAlchemy, ChromaDB
+- **Backend**: Spring Boot 3.2.1, Spring Security, Hibernate
 - **Frontend**: React, Tailwind CSS
-- **AI**: Ollama (llama3.2), SentenceTransformers
-- **Database**: SQLite (dev), ChromaDB (vectors)
-- **Auth**: JWT tokens, Fernet encryption
+- **AI**: Ollama (llama3.2), LangChain4j
+- **Database**: SQLite with JPA/Hibernate
+- **Auth**: JWT tokens, BCrypt encryption
 
 ## License
 
