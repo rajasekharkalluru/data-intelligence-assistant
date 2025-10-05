@@ -2,6 +2,7 @@ import { ExternalLink, Loader2, Send, Sparkles, User } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import branding from '../config/branding';
+import LogoIcon from './LogoIcon';
 
 const ChatInterface = ({ selectedSources, settings, token, darkMode, sessions, currentSessionId, setCurrentSessionId, onNewSession, onDeleteSession, selectedModel, setSelectedModel, availableModels }) => {
   const [messages, setMessages] = useState([]);

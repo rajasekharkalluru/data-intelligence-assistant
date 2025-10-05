@@ -9,6 +9,7 @@ import Logo from './components/Logo';
 import SettingsPanel from './components/SettingsPanel';
 import SourceSelector from './components/SourceSelector';
 import UserProfile from './components/UserProfile';
+import branding from './config/branding';
 
 function App() {
   const [user, setUser] = useState(null);
