@@ -29,7 +29,7 @@ AI-powered knowledge base system that integrates with your development tools (Co
 - Node.js 18+
 - [Ollama](https://ollama.ai) installed and running
 
-> **Windows Users:** See [WINDOWS_SETUP.md](WINDOWS_SETUP.md) for detailed Windows installation guide with batch scripts and troubleshooting.
+> **Windows Users:** Use `backend\run.bat` to start backend and `scripts\diagnose.bat` to check your setup.
 
 ### Installation
 
@@ -57,10 +57,13 @@ AI-powered knowledge base system that integrates with your development tools (Co
    cd backend
    run.bat
    
-   REM Terminal 2 - Frontend
+   REM Terminal 2 - Frontend (in new terminal)
    cd frontend
    npm install
    npm start
+   
+   REM Check setup (optional)
+   scripts\diagnose.bat
    ```
 
 3. **Access the application**
@@ -71,7 +74,39 @@ AI-powered knowledge base system that integrates with your development tools (Co
 
 4. **Create your account**
    - Click "Sign up" on the login screen
-   - Or use the registration endpoint directly
+   - Or use demo accounts: `demo`/`demo123` or `admin`/`admin123`
+
+### Windows Setup Notes
+
+**Prerequisites:**
+- Java 21+: [Download from Adoptium](https://adoptium.net/)
+- Maven: [Download from Apache](https://maven.apache.org/download.cgi)
+- Node.js 18+: [Download from nodejs.org](https://nodejs.org/)
+- Ollama: [Download for Windows](https://ollama.ai/download/windows)
+
+**Quick Start:**
+```cmd
+REM 1. Install Ollama and pull model
+ollama pull llama3.2
+
+REM 2. Run diagnostics
+scripts\diagnose.bat
+
+REM 3. Start backend (Terminal 1)
+cd backend
+run.bat
+
+REM 4. Start frontend (Terminal 2)
+cd frontend
+npm install
+npm start
+```
+
+**Common Windows Issues:**
+- **Port in use:** `netstat -ano | findstr :8000` then `taskkill /PID <PID> /F`
+- **Java not found:** Add Java bin folder to PATH in Environment Variables
+- **Maven not found:** Add Maven bin folder to PATH
+- **Ollama not accessible:** Check system tray for Ollama icon, restart if needed
 
 ## Usage
 
@@ -224,17 +259,17 @@ Run the diagnostic script to check your setup:
 
 **macOS/Linux:**
 ```bash
-./diagnose.sh
+./scripts/diagnose.sh
 ```
 
 **Windows (Command Prompt):**
 ```cmd
-diagnose.bat
+scripts\diagnose.bat
 ```
 
 **Windows (PowerShell):**
 ```powershell
-.\diagnose.ps1
+.\scripts\diagnose.ps1
 ```
 
 The diagnostic tool checks:
