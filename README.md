@@ -29,6 +29,8 @@ AI-powered knowledge base system that integrates with your development tools (Co
 - Node.js 18+
 - [Ollama](https://ollama.ai) installed and running
 
+> **Windows Users:** See [WINDOWS_SETUP.md](WINDOWS_SETUP.md) for detailed Windows installation guide with batch scripts and troubleshooting.
+
 ### Installation
 
 1. **Clone the repository**
@@ -39,8 +41,7 @@ AI-powered knowledge base system that integrates with your development tools (Co
 
 2. **Start the application**
    
-   Choose one of these options:
-   
+   **macOS/Linux:**
    ```bash
    # Option A: Auto-open both in separate terminals (recommended)
    ./scripts/start-both.sh
@@ -48,6 +49,18 @@ AI-powered knowledge base system that integrates with your development tools (Co
    # Option B: Manual - separate terminals for debugging
    ./scripts/start-backend.sh    # Terminal 1
    ./scripts/start-frontend.sh   # Terminal 2
+   ```
+   
+   **Windows:**
+   ```cmd
+   REM Terminal 1 - Backend
+   cd backend
+   run.bat
+   
+   REM Terminal 2 - Frontend
+   cd frontend
+   npm install
+   npm start
    ```
 
 3. **Access the application**
@@ -205,17 +218,51 @@ data-intelligence-assistant/
 
 ## Troubleshooting
 
+### System Diagnostics
+
+Run the diagnostic script to check your setup:
+
+**macOS/Linux:**
+```bash
+./diagnose.sh
+```
+
+**Windows (Command Prompt):**
+```cmd
+diagnose.bat
+```
+
+**Windows (PowerShell):**
+```powershell
+.\diagnose.ps1
+```
+
+The diagnostic tool checks:
+- Java, Maven, Node.js installation
+- Backend and frontend status
+- Database existence
+- AI provider configuration (Ollama or OCI)
+- Port availability
+
+### Common Issues
+
 **Ollama not found**
 ```bash
-# Install from https://ollama.ai, then:
+# macOS/Linux: Install from https://ollama.ai, then:
 ollama pull llama3.2
+
+# Windows: Download from https://ollama.ai/download/windows
 ```
 
 **Port conflicts**
 ```bash
-# Check if ports 3000 or 8000 are in use
+# macOS/Linux
 lsof -i :3000
 lsof -i :8000
+
+# Windows
+netstat -ano | findstr :3000
+netstat -ano | findstr :8000
 ```
 
 **Backend won't start**
