@@ -157,6 +157,30 @@ Then mention the bot in Slack or send it a direct message!
 
 See [slack-bot/README.md](slack-bot/README.md) for full setup instructions.
 
+## Deployment
+
+### Deploy to Oracle Cloud Infrastructure (OCI)
+
+Complete guides for production deployment:
+
+1. **[OCI_SETUP.md](backend/OCI_SETUP.md)** - Configure OCI Generative AI services
+   - Step-by-step OCI account setup
+   - Enable Generative AI service
+   - Configure API access and credentials
+   - Connect your application to OCI AI
+
+2. **[OCI_DEPLOYMENT.md](OCI_DEPLOYMENT.md)** - Deploy application to OCI
+   - Create and configure compute instance
+   - Install prerequisites and deploy app
+   - Set up HTTPS with custom domain
+   - Configure monitoring and backups
+   - Production best practices
+
+**Quick Deploy:**
+- Free Tier: VM.Standard.E2.1.Micro (Always Free)
+- Recommended: VM.Standard.E4.Flex (2 OCPUs, 16 GB RAM)
+- Includes: Load balancer, managed database, monitoring
+
 ## Configuration
 
 ### AI Provider Setup
